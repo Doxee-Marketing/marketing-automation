@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.local
+*.log
+usage.json
+.DS_Store
+
+# Editor / tool interni
+.claude/
+CLAUDE.md
+memory.md

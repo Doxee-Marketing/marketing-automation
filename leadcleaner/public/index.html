@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lead Cleaner — Doxee</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:       #f7f8fa;
+    --white:    #ffffff;
+    --border:   #e2e5ec;
+    --accent:   #1a56db;
+    --accent-h: #1344b8;
+    --text:     #111827;
+    --muted:    #6b7280;
+    --green:    #16a34a;
+    --green-bg: #f0fdf4;
+    --yellow:   #ca8a04;
+    --yellow-bg:#fefce8;
+    --red:      #dc2626;
+    --red-bg:   #fef2f2;
+    --radius:   8px;
+  }
+  body { font-family:'Inter',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; font-size:14px; }
+
+  /* Header */
+  header { background:var(--white); border-bottom:1px solid var(--border); padding:0 32px; height:56px; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .logo { font-size:15px; font-weight:700; letter-spacing:-.3px; }
+  .logo span { color:var(--accent); }
+  #usage-badge { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+  .quota-bar { width:80px; height:5px; background:var(--border); border-radius:99px; overflow:hidden; }
+  .quota-fill { height:100%; background:var(--accent); border-radius:99px; transition:width .3s; }
+  .quota-fill.warn { background:var(--yellow); }
+  .quota-fill.danger { background:var(--red); }
+
+  /* Main */
+  main { max-width:1100px; margin:32px auto; padding:0 24px; }
+
+  /* Drop zone */
+  #drop-zone { background:var(--white); border:2px dashed var(--border); border-radius:var(--radius); padding:56px 32px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; }
+  #drop-zone:hover, #drop-zone.drag { border-color:var(--accent); background:#f0f4ff; }
+  #drop-zone svg { color:var(--accent); margin-bottom:12px; }
+  .drop-title { font-size:15px; font-weight:600; margin-bottom:4px; }
+  .drop-sub { font-size:13px; color:var(--muted); }
+  #file-input { display:none; }
+
+  /* Toolbar */
+  #toolbar { display:none; align-items:center; justify-content:space-between; margin-bottom:16px; gap:12px; flex-wrap:wrap; }
+  #toolbar.visible { display:flex; }
+  .toolbar-left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .filter-group { display:flex; align-items:center; gap:6px; background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:6px 12px; font-size:13px; color:var(--muted); }
+  .filter-group input { width:50px; border:none; outline:none; font-size:13px; color:var(--text); background:transparent; }
+  #lead-count { font-size:13px; color:var(--muted); }
+
+  /* Buttons */
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:7px 14px; border-radius:var(--radius); font-size:13px; font-weight:500; cursor:pointer; border:1px solid transparent; transition:background .15s,border-color .15s; }
+  .btn-primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .btn-primary:hover { background:var(--accent-h); }
+  .btn-primary:disabled, .btn-danger:disabled, .btn-hs:disabled { opacity:.45; cursor:not-allowed; }
+  .btn-outline { background:var(--white); color:var(--text); border-color:var(--border); }
+  .btn-outline:hover { border-color:#aaa; }
+  .btn-ghost { background:transparent; color:var(--muted); }
+  .btn-ghost:hover { color:var(--text); background:var(--bg); }
+  .btn-danger { background:var(--red); color:#fff; border-color:var(--red); }
+  .btn-danger:hover:not(:disabled) { background:#b91c1c; }
+  .btn-hs { background:#ff7a59; color:#fff; border-color:#ff7a59; }
+  .btn-hs:hover:not(:disabled) { background:#e6603f; }
+
+  /* Banner */
+  .banner { display:none; align-items:center; justify-content:space-between; gap:12px; background:var(--green-bg); border:1px solid #bbf7d0; color:#166534; border-radius:var(--radius); padding:8px 14px; font-size:13px; margin-bottom:12px; }
+  .banner.visible { display:flex; }
+  .banner-close { background:none; border:none; color:#166534; cursor:pointer; font-size:16px; line-height:1; padding:2px 6px; }
+
+  /* Progress */
+  #progress-wrap { display:none; background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:16px 20px; margin-bottom:16px; flex-direction:column; gap:10px; }
+  #progress-wrap.visible { display:flex; }
+  .progress-label { font-size:13px; color:var(--muted); }
+  .progress-bar { height:6px; background:var(--border); border-radius:99px; overflow:hidden; }
+  .progress-fill { height:100%; background:var(--accent); border-radius:99px; transition:width .3s; width:0%; }
+
+  /* Table */
+  #table-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .table-scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  thead tr { background:var(--bg); border-bottom:1px solid var(--border); }
+  th { padding:10px 14px; text-align:left; font-weight:600; color:var(--muted); white-space:nowrap; cursor:pointer; user-select:none; }
+  th.col-check { cursor:default; width:36px; padding-right:0; }
+  th:hover { color:var(--text); }
+  td { padding:10px 14px; border-bottom:1px solid var(--border); white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
+  td.col-check { width:36px; padding-right:0; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:var(--bg); }
+  .row-enriched td:first-child { border-left:3px solid var(--green); }
+  .row-partial  td:first-child { border-left:3px solid var(--yellow); }
+  .enriched-val { color:var(--green); font-weight:500; }
+  .score { display:inline-block; padding:2px 8px; border-radius:99px; font-size:12px; font-weight:600; }
+  .score-green  { background:var(--green-bg);  color:var(--green); }
+  .score-yellow { background:var(--yellow-bg); color:var(--yellow); }
+  .score-red    { background:var(--red-bg);    color:var(--red); }
+  #empty-state  { padding:48px; text-align:center; color:var(--muted); display:none; }
+
+  /* Modal */
+  .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(17,24,39,.45); align-items:center; justify-content:center; z-index:50; }
+  .modal-backdrop.visible { display:flex; }
+  .modal { background:var(--white); border-radius:var(--radius); padding:24px; width:min(440px,90vw); box-shadow:0 10px 40px rgba(0,0,0,.2); }
+  .modal h2 { font-size:16px; margin-bottom:6px; }
+  .modal p.modal-sub { font-size:13px; color:var(--muted); margin-bottom:16px; }
+  .modal label { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:4px; margin-top:12px; text-transform:uppercase; letter-spacing:.4px; }
+  .modal label:first-of-type { margin-top:0; }
+  .modal input { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:13px; color:var(--text); }
+  .modal input:focus { outline:none; border-color:var(--accent); }
+  .modal .hint { font-size:11px; color:var(--muted); margin-top:4px; }
+  .modal-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:20px; }
+
+  /* Toast */
+  #toast { display:none; position:fixed; bottom:24px; right:24px; background:var(--white); border:1px solid var(--border); border-left:4px solid var(--accent); border-radius:var(--radius); padding:12px 16px; font-size:13px; box-shadow:0 6px 24px rgba(0,0,0,.12); max-width:360px; z-index:60; }
+  #toast.visible { display:block; }
+  #toast.success { border-left-color:var(--green); }
+  #toast.error   { border-left-color:var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Lead<span>Cleaner</span></div>
+  <div id="usage-badge">
+    <span id="usage-text">Loading quota...</span>
+    <div class="quota-bar"><div class="quota-fill" id="quota-fill" style="width:0%"></div></div>
+  </div>
+</header>
+
+<main>
+  <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+    </svg>
+    <div class="drop-title">Upload XLSX file</div>
+    <div class="drop-sub">Drag a file here or click to browse</div>
+    <input type="file" id="file-input" accept=".xlsx,.xls" />
+  </div>
+
+  <div id="toolbar" style="margin-top:20px;">
+    <div class="toolbar-left">
+      <button class="btn btn-primary" id="btn-enrich" onclick="startEnrichment()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+        Enrich with Apollo
+      </button>
+      <button class="btn btn-outline" onclick="exportXLSX()">Export XLSX</button>
+      <button class="btn btn-danger" id="btn-delete" disabled onclick="deleteSelected()">Delete selected</button>
+      <button class="btn btn-ghost" onclick="resetApp()">New file</button>
+      <div class="filter-group">
+        Score ≥ <input type="number" id="score-filter" value="-99" min="-15" max="25" oninput="renderTable()">
+      </div>
+    </div>
+    <span id="lead-count"></span>
+  </div>
+
+  <div id="merge-banner" class="banner">
+    <span id="merge-banner-text"></span>
+    <button class="banner-close" onclick="document.getElementById('merge-banner').classList.remove('visible')">×</button>
+  </div>
+
+  <div id="progress-wrap" style="margin-top:12px;">
+    <div class="progress-label" id="progress-label">Processing...</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+
+  <div id="table-card" style="margin-top:12px; display:none;">
+    <div class="table-scroll">
+      <table>
+        <thead id="table-head"></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div id="empty-state">No leads match the filter.</div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+const COLUMNS = [
+  { key:'salutation',   label:'Sal.' },
+  { key:'first_name',   label:'First Name' },
+  { key:'last_name',    label:'Last Name' },
+  { key:'email',        label:'Email' },
+  { key:'job_title',    label:'Job Title',     enriched:true },
+  { key:'company',      label:'Company' },
+  { key:'industry',     label:'Industry',      enriched:true },
+  { key:'company_size', label:'Company Size',  enriched:true },
+  { key:'country',      label:'Country' },
+  { key:'_score',       label:'Score' },
+];
+
+const ALIASES = {
+  salutation:   ['salutation','anrede','salut','titolo','sal'],
+  first_name:   ['first name','first_name','vorname','prénom','nome'],
+  last_name:    ['last name','last_name','nachname','nom','cognome'],
+  email:        ['email','e-mail','mail','e-mail-adresse','posta elettronica'],
+  job_title:    ['job title','job_title','title','jobtitle','funzione','ruolo','position','berufsbezeichnung','fonction'],
+  company:      ['company','firma','entreprise','azienda','organization'],
+  industry:     ['industry','branche','secteur','settore'],
+  company_size: ['company size','company_size','employees','mitarbeiter','employés','dipendenti'],
+  country:      ['country','land','pays','paese','country/region','country-region'],
+};
+
+let leads = [];
+let sortCol = null;
+let sortAsc = true;
+let enriching = false;
+let stopFlag = false;
+let nextId = 1;
+const selectedIds = new Set();
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadUsage();
+  const zone = document.getElementById('drop-zone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+  document.getElementById('file-input').addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+});
+
+async function loadUsage() {
+  try {
+    const d = await (await fetch('/api/usage')).json();
+    updateUsageBadge(d.calls_used, d.monthly_limit);
+  } catch (_) { document.getElementById('usage-text').textContent = 'Quota N/A'; }
+}
+
+function updateUsageBadge(used, limit) {
+  const pct = Math.min(100, Math.round((used / limit) * 100));
+  document.getElementById('usage-text').textContent = `${used}/${limit} calls`;
+  const f = document.getElementById('quota-fill');
+  f.style.width = pct + '%';
+  f.className = 'quota-fill' + (pct >= 90 ? ' danger' : pct >= 70 ? ' warn' : '');
+}
+
+/* ---------------- Dedup / merge ---------------- */
+
+function normKey(s) { return String(s||'').trim().toLowerCase(); }
+function isValidEmail(e) { return typeof e === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.trim()); }
+
+// Email "authority" score — lower is better. .com preferred, fewer subdomains preferred.
+function emailScore(email) {
+  const e = email.trim().toLowerCase();
+  const at = e.indexOf('@');
+  const domain = e.slice(at + 1);
+  const dots = (domain.match(/\./g) || []).length;
+  const tld = domain.slice(domain.lastIndexOf('.') + 1);
+  let tldPenalty;
+  if (tld === 'com') tldPenalty = 0;
+  else if (['org','net','io'].includes(tld)) tldPenalty = 1;
+  else tldPenalty = 2;
+  return dots * 10 + tldPenalty;
+}
+
+function pickBestEmail(emails) {
+  const valid = emails.filter(isValidEmail).map(e => e.trim());
+  if (!valid.length) return '';
+  valid.sort((a, b) => {
+    const sa = emailScore(a), sb = emailScore(b);
+    if (sa !== sb) return sa - sb;
+    return a.length - b.length;
+  });
+  return valid[0];
+}
+
+function firstNonEmpty(arr) {
+  for (const v of arr) if (v !== null && v !== undefined && String(v).trim() !== '') return v;
+  return '';
+}
+
+function mergeCluster(records) {
+  if (records.length === 1) return records[0];
+  const merged = { _id: records[0]._id };
+  const fields = ['salutation','first_name','last_name','job_title','company','industry','company_size','country'];
+  for (const f of fields) merged[f] = firstNonEmpty(records.map(r => r[f]));
+  merged.email = pickBestEmail(records.map(r => r.email).filter(Boolean));
+  const scores = records.map(r => r._score).filter(s => s !== null && s !== undefined);
+  merged._score = scores.length ? Math.max(...scores) : null;
+  const enrichedSet = new Set();
+  for (const r of records) (r._enriched || []).forEach(e => enrichedSet.add(e));
+  merged._enriched = [...enrichedSet];
+  return merged;
+}
+
+function dedupAndMerge(rawLeads) {
+  // Build clusters: union-find by name-key OR shared email.
+  const parent = rawLeads.map((_, i) => i);
+  const find = i => { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+  const union = (a, b) => { const ra = find(a), rb = find(b); if (ra !== rb) parent[rb] = ra; };
+
+  const byNameKey = new Map();
+  const byEmail = new Map();
+  rawLeads.forEach((l, i) => {
+    const nk = `${normKey(l.first_name)}|${normKey(l.last_name)}|${normKey(l.company)}`;
+    if (nk !== '||') {
+      if (byNameKey.has(nk)) union(byNameKey.get(nk), i); else byNameKey.set(nk, i);
+    }
+    const ek = normKey(l.email);
+    if (ek) {
+      if (byEmail.has(ek)) union(byEmail.get(ek), i); else byEmail.set(ek, i);
+    }
+  });
+
+  const clusters = new Map();
+  rawLeads.forEach((l, i) => {
+    const root = find(i);
+    if (!clusters.has(root)) clusters.set(root, []);
+    clusters.get(root).push(l);
+  });
+
+  const merged = [];
+  for (const cluster of clusters.values()) merged.push(mergeCluster(cluster));
+  return merged;
+}
+
+function showMergeBanner(removedCount) {
+  const banner = document.getElementById('merge-banner');
+  if (removedCount <= 0) { banner.classList.remove('visible'); return; }
+  document.getElementById('merge-banner-text').textContent =
+    `Merged ${removedCount} duplicate${removedCount === 1 ? '' : 's'}.`;
+  banner.classList.add('visible');
+}
+
+/* ---------------- File handling ---------------- */
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const wb = XLSX.read(e.target.result, { type:'array' });
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1, defval:'' });
+    if (rows.length < 2) { alert('Empty file or no data.'); return; }
+    const header = rows[0].map(h => String(h).trim().toLowerCase());
+    const map = {};
+    for (const [key, aliases] of Object.entries(ALIASES)) {
+      const idx = header.findIndex(h => aliases.some(a => h.includes(a)));
+      if (idx >= 0) map[key] = idx;
+    }
+    const raw = rows.slice(1).filter(r => r.some(c => c !== '')).map(r => {
+      const l = { _id: nextId++, _score:null, _enriched:[] };
+      for (const [key, idx] of Object.entries(map)) l[key] = String(r[idx]||'').trim();
+      return l;
+    });
+    const before = raw.length;
+    leads = dedupAndMerge(raw);
+    selectedIds.clear();
+    showMergeBanner(before - leads.length);
+    document.getElementById('drop-zone').style.display = 'none';
+    document.getElementById('toolbar').classList.add('visible');
+    document.getElementById('table-card').style.display = 'block';
+    renderTable();
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+const TARGET_TITLES = new Set(['CEO','CTO','CIO','COO','CFO','CMO','HEAD OF IT','ARCHITECTURE INTEGRATION MANAGER','IT MANAGER','IT DIRECTOR','ENTERPRISE ARCHITECT','VP DIGITAL TRANSFORMATION','HEAD OF CX','AMMINISTRATORE DELEGATO','PRESIDENT','CHIEF OPERATION OFFICER','CHIEF FINANCIAL OFFICER','CHIEF TECHNOLOGY','CHIEF MARKETING OFFICER','CHIEF INFORMATION OFFICER','CUSTOMER EXPERIENCE MANAGER','BILLING MANAGER','HEAD OF CUSTOMER VALUE','PRODUCT OWNER','CUSTOMER EXPERIENCE DIRECTOR','HEAD OF DATA GOVERNANCE','DIGITAL CUSTOMER SERVICE MANAGER','DISTRIBUTION IT MANAGER','CLAIM MANAGER','HEAD OF SOLUTION','IT TECHNICAL ARCHITECT','HEAD OF OPERATIONS','HEAD OF FINANCE','HEAD INNOVATION OFFICER','CHIEF INNOVATION OFFICER','DIGITAL INNOVATION OFFICER']);
+const NEGATIVE_TITLES = new Set(['STUDENT','HR']);
+const TARGET_INDUSTRIES = new Set(['MANAGED PRINT SERVICES','HOSPITAL & HEALTH CARE','HOSPITAL & HEATH CARE','BROADCAST MEDIA','ENTERTAINMENT','GOVERNMENT RELATIONS','RETAIL','PUBLIC SECTOR1','UTILITIES1','PUBLIC SECTOR','TELCO','INSURANCE','INVESTMENT MANAGEMENT','INVESTMENT BANKING','TELECOMMUNICATIONS','GOVERNMENT ADMINISTRATION','GOVERNEMNT ADMINISTRATION','BANKING','UTILITIES','FINANCIAL SERVICES','MEDIA','IT SERVICES','IT SERVICES1']);
+
+function computeScore(l) {
+  let s = 0;
+  const t = (l.job_title||'').toUpperCase().trim();
+  const ind = (l.industry||'').toUpperCase().trim();
+  const sz = parseInt(l.company_size,10)||0;
+  if (t) { if (TARGET_TITLES.has(t)) s+=5; else for(const x of TARGET_TITLES) if(t.includes(x)||x.includes(t)){s+=5;break;} for(const n of NEGATIVE_TITLES) if(t.includes(n)){s-=15;break;} }
+  if (ind) { if (TARGET_INDUSTRIES.has(ind)) s+=10; else for(const x of TARGET_INDUSTRIES) if(ind.includes(x)||x.includes(ind)){s+=10;break;} }
+  if (sz>=500) s+=5;
+  return s;
+}
+
+/* ---------------- Selection ---------------- */
+
+function getFiltered() {
+  const minScore = parseInt(document.getElementById('score-filter').value,10)||(-99);
+  let filtered = leads.filter(l => l._score===null || l._score>=minScore);
+  if (sortCol) filtered.sort((a,b) => {
+    const va=a[sortCol]??'', vb=b[sortCol]??'';
+    const c = typeof va==='number' ? va-vb : String(va).localeCompare(String(vb));
+    return sortAsc?c:-c;
+  });
+  return filtered;
+}
+
+function toggleRow(id, checked) {
+  if (checked) selectedIds.add(id); else selectedIds.delete(id);
+  updateActionButtons();
+  syncSelectAllCheckbox();
+}
+
+function toggleSelectAll(checked) {
+  const visibleIds = getFiltered().map(l => l._id);
+  if (checked) visibleIds.forEach(i => selectedIds.add(i));
+  else visibleIds.forEach(i => selectedIds.delete(i));
+  renderTable();
+}
+
+function syncSelectAllCheckbox() {
+  const cb = document.getElementById('selectAll');
+  if (!cb) return;
+  const visibleIds = getFiltered().map(l => l._id);
+  if (!visibleIds.length) { cb.checked = false; cb.indeterminate = false; return; }
+  const selectedVisible = visibleIds.filter(i => selectedIds.has(i)).length;
+  cb.checked = selectedVisible === visibleIds.length;
+  cb.indeterminate = selectedVisible > 0 && selectedVisible < visibleIds.length;
+}
+
+function updateActionButtons() {
+  const n = selectedIds.size;
+  document.getElementById('btn-delete').disabled = n === 0;
+}
+
+function deleteSelected() {
+  if (!selectedIds.size) return;
+  if (!confirm(`Delete ${selectedIds.size} selected lead${selectedIds.size===1?'':'s'}?`)) return;
+  leads = leads.filter(l => !selectedIds.has(l._id));
+  selectedIds.clear();
+  renderTable();
+}
+
+/* ---------------- Render ---------------- */
+
+function renderTable() {
+  const filtered = getFiltered();
+  const headCells =
+    `<th class="col-check"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)"></th>` +
+    COLUMNS.map(c => `<th onclick="sortBy('${c.key}')">${c.label}${sortCol===c.key?(sortAsc?' ↑':' ↓'):''}</th>`).join('');
+  document.getElementById('table-head').innerHTML = `<tr>${headCells}</tr>`;
+  const tbody = document.getElementById('table-body');
+  const empty = document.getElementById('empty-state');
+  if (!filtered.length) { tbody.innerHTML=''; empty.style.display='block'; }
+  else {
+    empty.style.display='none';
+    tbody.innerHTML = filtered.map(l => {
+      const n = l._enriched?l._enriched.length:0;
+      const rc = n>=3?'row-enriched':n>0?'row-partial':'';
+      const checked = selectedIds.has(l._id) ? 'checked' : '';
+      const checkCell = `<td class="col-check"><input type="checkbox" class="row-check" data-id="${l._id}" ${checked} onchange="toggleRow(${l._id}, this.checked)"></td>`;
+      const dataCells = COLUMNS.map(c => {
+        if (c.key==='_score') { if(l._score===null)return'<td>—</td>'; const cl=l._score>=10?'score-green':l._score>=0?'score-yellow':'score-red'; return`<td><span class="score ${cl}">${l._score>0?'+':''}${l._score}</span></td>`; }
+        const v=l[c.key]||'';
+        return `<td class="${c.enriched&&v?'enriched-val':''}" title="${v}">${v||'—'}</td>`;
+      }).join('');
+      return `<tr class="${rc}">${checkCell}${dataCells}</tr>`;
+    }).join('');
+  }
+  document.getElementById('lead-count').textContent = `${filtered.length} lead${filtered.length===1?'':'s'}${filtered.length!==leads.length?` of ${leads.length}`:''}`;
+  syncSelectAllCheckbox();
+  updateActionButtons();
+}
+
+function sortBy(col) { if(sortCol===col)sortAsc=!sortAsc; else{sortCol=col;sortAsc=true;} renderTable(); }
+
+/* ---------------- Enrichment ---------------- */
+
+async function startEnrichment() {
+  if (enriching) { stopFlag=true; return; }
+  enriching=true; stopFlag=false;
+  const btn = document.getElementById('btn-enrich');
+  btn.textContent='⏹ Stop';
+  const pw=document.getElementById('progress-wrap'), pf=document.getElementById('progress-fill'), pl=document.getElementById('progress-label');
+  pw.classList.add('visible');
+  const queue = leads.filter(l=>!l._enriched||l._enriched.length===0);
+  let done=0;
+  for (const lead of queue) {
+    if(stopFlag) break;
+    pl.textContent=`Processing ${done+1} of ${queue.length}…`;
+    pf.style.width=Math.round((done/queue.length)*100)+'%';
+    try {
+      const res = await fetch('/api/enrich',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:lead.email,first_name:lead.first_name,last_name:lead.last_name})});
+      if(res.status===429){pl.textContent='Apollo monthly quota exhausted.';break;}
+      const d=await res.json();
+      if(res.ok){
+        const en=[];
+        if(d.job_title){lead.job_title=d.job_title;en.push('job_title');}
+        if(d.company){lead.company=d.company;en.push('company');}
+        if(d.company_size){lead.company_size=String(d.company_size);en.push('company_size');}
+        if(d.industry){lead.industry=d.industry;en.push('industry');}
+        if(d.country){lead.country=d.country;en.push('country');}
+        lead._enriched=en; lead._score=computeScore(lead);
+        if(d.calls_used!==undefined) updateUsageBadge(d.calls_used,d.calls_used+d.calls_remaining);
+      }
+    } catch(_){}
+    done++;
+    renderTable();
+    await new Promise(r=>setTimeout(r,400));
+  }
+  pf.style.width='100%';
+  pl.textContent=stopFlag?`Stopped. Enriched ${done} leads.`:`Done. Enriched ${done} leads.`;
+  btn.innerHTML='<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M5 12h14M12 5l7 7-7 7"/></svg> Enrich with Apollo';
+  enriching=false;
+}
+
+/* ---------------- Export ---------------- */
+
+function exportXLSX() {
+  const rows=leads.map(l=>({'Salutation':l.salutation||'','First Name':l.first_name||'','Last Name':l.last_name||'','Email':l.email||'','Job Title':l.job_title||'','Company':l.company||'','Industry':l.industry||'','Company Size':l.company_size||'','Country':l.country||'','Score':l._score!==null?l._score:''}));
+  const ws=XLSX.utils.json_to_sheet(rows), wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Leads');
+  XLSX.writeFile(wb,`leads_enriched_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+function showToast(msg, kind) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'visible ' + (kind || '');
+  setTimeout(() => t.classList.remove('visible'), 6000);
+}
+
+/* ---------------- Reset ---------------- */
+
+function resetApp() {
+  leads=[]; sortCol=null; selectedIds.clear();
+  document.getElementById('drop-zone').style.display='block';
+  document.getElementById('toolbar').classList.remove('visible');
+  document.getElementById('table-card').style.display='none';
+  document.getElementById('progress-wrap').classList.remove('visible');
+  document.getElementById('merge-banner').classList.remove('visible');
+  document.getElementById('file-input').value='';
+}
+</script>
+</body>
+</html>

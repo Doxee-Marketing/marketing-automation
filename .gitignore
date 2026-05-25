@@ -1,0 +1,96 @@
+# ──────────────────────────────────────────────
+# SEGRETI E CONFIGURAZIONI LOCALI
+# ──────────────────────────────────────────────
+.env
+.env.*
+config.json
+config.local.json
+secrets.json
+*.key
+*.pem
+*.p12
+*.pfx
+credentials.json
+token.json
+service_account.json
+
+# ──────────────────────────────────────────────
+# PYTHON
+# ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+venv/
+.venv/
+env/
+ENV/
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg-info/
+dist/
+build/
+.eggs/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+*.log
+
+# ──────────────────────────────────────────────
+# NODE / JAVASCRIPT
+# ──────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+dist/
+.next/
+out/
+
+# ──────────────────────────────────────────────
+# DATI E OUTPUT TEMPORANEI
+# ──────────────────────────────────────────────
+*.xlsx
+*.csv
+output/
+data/raw/
+data/temp/
+*.tmp
+
+# ──────────────────────────────────────────────
+# SISTEMA OPERATIVO
+# ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+Icon
+
+# ──────────────────────────────────────────────
+# EDITOR
+# ──────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ──────────────────────────────────────────────
+# DOCKER
+# ──────────────────────────────────────────────
+.dockerignore
+
+# ──────────────────────────────────────────────
+# SPECIFICO DOXEE
+# ──────────────────────────────────────────────
+# File claude interni — non rilevanti per la repo pubblica
+CLAUDE.md
+memory.md
+tasks.md
+usage.json
+invitati.json

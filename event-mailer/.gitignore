@@ -1,0 +1,23 @@
+# secrets / token cache
+.token_cache.json
+
+# config locale (contiene tenant_id e client_id specifici dell'utente)
+config.json
+
+# dati runtime
+invitati.json
+
+# il file evento dell'utente non finisce su git, solo l'esempio
+evento.ics
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+
+# os
+.DS_Store
+Thumbs.db
+
+# misc
+_invite_*.ics

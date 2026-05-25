@@ -90,7 +90,6 @@ Icon
 # SPECIFICO DOXEE
 # ──────────────────────────────────────────────
 # File claude interni — non rilevanti per la repo pubblica
-CLAUDE.md
 memory.md
 tasks.md
 usage.json

@@ -6,7 +6,7 @@ This guide takes you from zero to your first invitation sent, step by step. No t
 
 ## 1. What you need before you start
 
-- A Mac (this guide does not work on Windows or Linux).
+- A Mac or a Windows PC (Windows 10 or later).
 - A Microsoft 365 account with calendar access (e.g. a company account).
 - Access to your organisation's Azure portal to register the app (or someone who can do it for you — see section 4).
 - An internet connection.
@@ -14,6 +14,8 @@ This guide takes you from zero to your first invitation sent, step by step. No t
 ---
 
 ## 2. Install Python 3
+
+**Mac:**
 
 Go to [python.org/downloads](https://www.python.org/downloads/).
 
@@ -26,6 +28,20 @@ To verify the installation, open Terminal (search with Spotlight: `Cmd+Space`, t
 >python --version
 
 Press Enter. You should see something like `Python 3.12.3`. If a version number appears, Python is installed correctly.
+
+**Windows:**
+
+Go to [python.org/downloads](https://www.python.org/downloads/). Click the large yellow **Download Python 3.x.x** button. An installer (`.exe`) will download.
+
+Double-click the installer. **IMPORTANT:** on the first screen, check the box **"Add Python to PATH"** before clicking **Install**. Without this, the program won't find Python.
+
+Click **Install Now** and wait. Close the installer when done.
+
+To verify: open Command Prompt (search for `cmd` in the Start menu) and run:
+
+>python --version
+
+You should see something like `Python 3.12.3`.
 
 ---
 
@@ -144,6 +160,8 @@ Copy `evento.ics` into the `event-mailer` folder (the one you downloaded in step
 
 ## 6. First run
 
+**Mac:**
+
 Open the `event-mailer` folder in Finder.
 
 Double-click `start.command`.
@@ -151,6 +169,14 @@ Double-click `start.command`.
 A Terminal window opens. If a macOS security warning appears ("cannot open the application from an unidentified developer"), go to **System Settings → Privacy & Security** and click **Open Anyway**.
 
 The program installs the required dependencies (needs internet, takes a few seconds). Then the setup wizard starts.
+
+**Windows:**
+
+Double-click `start.bat` in the `event-mailer` folder.
+
+If a Windows security warning appears ("Windows protected your PC"), click **More info → Run anyway**. This warning appears because the `.bat` file is not digitally signed.
+
+A Command Prompt window opens. First run: dependencies install automatically (needs internet, takes about 1 minute). Do not close the window.
 
 The wizard does three things:
 
@@ -174,7 +200,12 @@ You'll see something like this in the Terminal:
 Browser opened. Paste the code and confirm. Waiting here...
 Your browser opens automatically on the Microsoft page. The code is already in your clipboard.
 
-Click in the text field on the Microsoft page and paste the code (`Cmd+V`). Click **Next**.
+Click in the text field on the Microsoft page and paste the code:
+
+- **Mac:** `Cmd+V`
+- **Windows:** `Ctrl+V`
+
+Click **Next**.
 
 Sign in with your Microsoft 365 account (company email and password). Confirm the requested permissions.
 
@@ -233,3 +264,29 @@ Delete `.token_cache.json` from the `event-mailer` folder. Delete `config.json`.
 
 **"No event with '...' in the title found on Exchange".**
 The configured keyword does not match the event title in the calendar. Open `config.json` and update the `event_keyword` value with a word from the exact event title as it appears in Outlook.
+
+**`start.bat` closes immediately without output (Windows).**
+Right-click `start.bat` → **Run as administrator** to rule out permission issues. If it still closes, open Command Prompt, navigate to the `event-mailer` folder, and run:
+
+>python automation\server.py
+
+This keeps the window open so you can read the error.
+
+**"Python was not found" or "python is not recognised" (Windows).**
+Python is installed but not in PATH. Open the Python installer again, click **Modify**, then on the first screen check **"Add Python to PATH"**. Restart the Command Prompt after this change.
+
+**Client Secret not saved / keyring error (Windows).**
+On Windows, `keyring` uses the Windows Credential Locker. If it fails, run:
+
+>pip install keyring --upgrade
+
+Then delete `config.json` and re-run `start.bat` to go through setup again.
+
+**"Port 8765 already in use" (Windows).**
+Find and close the other `start.bat` window. Or, in Command Prompt, run:
+
+>netstat -ano | findstr :8765
+
+Note the PID in the last column, then:
+
+>taskkill /PID &lt;PID&gt; /F

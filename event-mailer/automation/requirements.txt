@@ -1,3 +1,4 @@
 requests>=2.31
 openpyxl>=3.1
 keyring>=24
+tzdata>=2023.1

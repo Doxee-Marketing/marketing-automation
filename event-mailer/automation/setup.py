@@ -114,7 +114,7 @@ def run():
     cfg["tenant_id"] = _ask("Tenant ID", default=cfg.get("tenant_id"))
     cfg["client_id"] = _ask("Client ID", default=cfg.get("client_id"))
 
-    print("\n[3/3] Client Secret (sara' salvato cifrato nel macOS Keychain)")
+    print("\n[3/3] Client Secret (sara' salvato cifrato nel sistema)")
     existing = ""
     try:
         existing = keyring.get_password(KEYRING_SERVICE, cfg["client_id"]) or ""
@@ -127,9 +127,9 @@ def run():
         sys.exit(1)
     if secret:
         keyring.set_password(KEYRING_SERVICE, cfg["client_id"], secret)
-        print("  Salvato nel Keychain.")
+        print("  Salvato nel sistema.")
     else:
-        print("  Tengo quello gia' presente nel Keychain.")
+        print("  Tengo quello gia' presente.")
 
     _save_config(cfg)
     print("\nSetup completato.\n")

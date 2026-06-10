@@ -53,6 +53,8 @@ function createEnrichRouter({ apiKey, usageTracker }) {
     const summary = usageTracker.getSummary();
 
     return res.json({
+      first_name:      result.firstName,
+      last_name:       result.lastName,
       job_title:       result.jobTitle,
       company:         result.company,
       company_size:    result.companySize,

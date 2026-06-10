@@ -95,6 +95,8 @@ async function matchPerson({ apiKey, email, firstName, lastName }) {
   return {
     ok: true,
     status: apolloRes.status,
+    firstName: person?.first_name || null,
+    lastName: person?.last_name || null,
     jobTitle: person?.title || null,
     company: person?.organization?.name || null,
     companySize: person?.organization?.estimated_num_employees || null,

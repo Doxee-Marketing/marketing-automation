@@ -530,6 +530,8 @@ async function startEnrichment() {
       const d=await res.json();
       if(res.ok){
         const en=[];
+        if(d.first_name&&!(lead.first_name||'').trim()){lead.first_name=d.first_name;}
+        if(d.last_name&&!(lead.last_name||'').trim()){lead.last_name=d.last_name;}
         if(d.job_title){lead.job_title=d.job_title;en.push('job_title');}
         if(d.company){lead.company=d.company;en.push('company');}
         if(d.company_size){lead.company_size=String(d.company_size);en.push('company_size');}
